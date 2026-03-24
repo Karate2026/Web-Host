@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ROBIN PAIRING</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #0b0b0b;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      padding: 20px;
+    }
+
+    .box {
+      width: 100%;
+      max-width: 400px;
+      padding: 30px;
+      background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(37, 211, 102, 0.1);
+      text-align: center;
+      border: 1px solid #333;
+    }
+
+    h3 {
+      margin-bottom: 20px;
+      color: #25d366;
+    }
+
+    p {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 20px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: #333;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    .tab-btn.active {
+      background: #25d366;
+      color: #000;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    input {
+      padding: 15px;
+      border-radius: 12px;
+      border: 1px solid #444;
+      background: #000;
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #25d366;
+    }
+
+    button.main-btn {
+      padding: 15px;
+      border-radius: 12px;
+      border: none;
+      background: #25d366;
+      color: #000;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button.main-btn:hover {
+      background: #1eb954;
+      transform: translateY(-2px);
+    }
+
+    #qr-container {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fff;
+      border-radius: 15px;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      width: 200px;
+      height: 200px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    #qr-image {
+      width: 100%;
+      height: 100%;
+    }
+
+    #pair-code-display {
+      margin-top: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #25d366;
+      letter-spacing: 2px;
+      cursor: pointer;
+      padding: 10px;
+      border: 2px dashed #25d366;
+      border-radius: 10px;
+      display: none;
+    }
+
+    #loading {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .fa-spin {
+      color: #25d366;
+      font-size: 24px;
+    }
+
+    .status-msg {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    .error { color: #ff4444; }
+    .success { color: #25d366; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="box">
+      <h3>ROBIN PAIRING</h3>
+      <p>Connect your WhatsApp to Robin Bot</p>
+      
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('pair-code')">Pairing Code</button>
+        <button class="tab-btn" onclick="showTab('qr-code')">QR Code</button>
+      </div>
+
+      <div id="pair-code" class="section active">
+        <div class="input-group">
+          <input type="number" id="number" placeholder="Enter phone (e.g. 94704xxxxxx)">
+          <button class="main-btn" onclick="getPairCode()">Get Pairing Code</button>
+        </div>
+      </div>
+
+      <div id="qr-code" class="section">
+        <button class="main-btn" onclick="getQR()">Generate QR Code</button>
+      </div>
+
+      <div id="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <div class="status-msg">Processing...</div>
+      </div>
+
+      <div id="qr-container">
+        <img id="qr-image" src="" alt="QR Code">
+      </div>
+
+      <div id="pair-code-display" onclick="copyCode()"></div>
+      
+      <div id="status" class="status-msg"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js"></script>
+  <script>
+    function showTab(tabId) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
+      
+      // Reset displays
+      document.getElementById('qr-container').style.display = 'none';
+      document.getElementById('pair-code-display').style.display = 'none';
+      document.getElementById('status').innerText = '';
+    }
+
+    async function getPairCode() {
+      const num = document.getElementById('number').value;
+      const status = document.getElementById('status');
+      const loader = document.getElementById('loading');
+      const display = document.getElementById('pair-code-display');
+
+      if (!num) {
+        status.innerText = "Please enter a phone number";
+        status.className = "status-msg error";
+        return;
+      }
+
+      loader.style.display = 'block';
+      status.innerText = "Generating pairing code...";
+      display.style.display = 'none';
+
+      try {
+        const { data } = await axios(`/code?number=${num}`);
+        loader.style.display = 'none';
+        
+        if (data.code) {
+          display.innerText = data.code;
+          display.style.display = 'block';
+          status.innerText = "Click the code to copy";
+          status.className = "status-msg success";
+        } else {
+          status.innerText = "Failed to get code. Try again.";
+          status.className = "status-msg error";
+        }
+      } catch (err) {
+        loader.style.display = 'none';
+        status.innerText = "Error connecting to server";
+        status.className = "status-msg error";
+      }
+    }
+
+    async function getQR() {
+      const status = document.getElementById('status');
+      const loader = document.getElementById('loading');
+      const qrContainer = document.getElementById('qr-container');
+      const qrImg = document.getElementById('qr-image');
+
+      loader.style.display = 'block';
+      status.innerText = "Generating QR Code...";
+      qrContainer.style.display = 'none';
+
+      try {
+        const { data } = await axios(`/code/qr`);
+        loader.style.display = 'none';
+        
+        if (data.qr) {
+          qrImg.src = data.qr;
+          qrContainer.style.display = 'flex';
+          status.innerText = "Scan this QR code with WhatsApp";
+          status.className = "status-msg success";
+        } else {
+          status.innerText = "Failed to get QR. Try again.";
+          status.className = "status-msg error";
+        }
+      } catch (err) {
+        loader.style.display = 'none';
+        status.innerText = "Error connecting to server";
+        status.className = "status-msg error";
+      }
+    }
+
+    function copyCode() {
+      const code = document.getElementById('pair-code-display').innerText;
+      navigator.clipboard.writeText(code);
+      document.getElementById('status').innerText = "Copied to clipboard!";
+    }
+  </script>
+</body>
+</html>
